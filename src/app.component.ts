@@ -79,11 +79,13 @@ export class AppComponent {
     
     this.autoResizeTextarea();
 
+    const messagesForApi = this.messages(); // Capture history before adding UI placeholder
+
     // Add a placeholder for the AI's streaming response
     this.messages.update((m) => [...m, { role: 'assistant', content: '' }]);
 
     try {
-      const stream = await this.webLlmService.getChatCompletionStream(this.messages());
+      const stream = await this.webLlmService.getChatCompletionStream(messagesForApi);
       
       let lastMessageIndex = this.messages().length - 1;
 
@@ -103,8 +105,14 @@ export class AppComponent {
     } catch (e: any) {
       this.error.set('Произошла ошибка при общении с AI. Пожалуйста, попробуйте еще раз.');
       console.error(e);
-      // Remove the empty placeholder on error
-      this.messages.update(m => m.filter(msg => msg.content !== '' || msg.role !== 'assistant'));
+      // On error, remove the empty placeholder that was added for the UI
+      this.messages.update(m => {
+        const last = m[m.length-1];
+        if (last && last.role === 'assistant' && last.content === '') {
+          return m.slice(0, -1);
+        }
+        return m;
+      });
     } finally {
       this.isLoading.set(false);
       this.focusInput();

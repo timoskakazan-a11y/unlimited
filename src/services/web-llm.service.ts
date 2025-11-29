@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
-import { MLCEngine, ChatCompletionStream, InitProgressReport } from "@mlc-ai/web-llm";
+// Fix: Replaced non-existent `ChatCompletionStream` with `ChatCompletionChunk` which is the correct type for stream parts.
+import { MLCEngine, ChatCompletionChunk, InitProgressReport } from "@mlc-ai/web-llm";
 import { ChatMessage } from '../models/chat-message.model';
 
-const SELECTED_MODEL = "gemma-2b-it-q4f16_1-MLC";
+const SELECTED_MODEL = "Llama-3-8B-Instruct-q4f16_1-MLC";
 
 @Injectable({ providedIn: 'root' })
 export class WebLlmService {
@@ -18,10 +19,13 @@ export class WebLlmService {
     if (!this.engine) {
         this.engine = new MLCEngine();
     }
-    await this.engine.reload(SELECTED_MODEL, undefined, progressCallback);
+    // Fix: The `reload` method signature changed. Progress callback is now set with `setInitProgressCallback` before reloading.
+    this.engine.setInitProgressCallback(progressCallback);
+    await this.engine.reload(SELECTED_MODEL);
   }
   
-  async getChatCompletionStream(messages: ChatMessage[]): Promise<ChatCompletionStream> {
+  // Fix: Updated the return type to `Promise<AsyncIterable<ChatCompletionChunk>>` which is what the streaming API returns.
+  async getChatCompletionStream(messages: ChatMessage[]): Promise<AsyncIterable<ChatCompletionChunk>> {
     if (!this.engine) {
       throw new Error("Engine not initialized.");
     }
