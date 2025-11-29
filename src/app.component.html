@@ -1,0 +1,130 @@
+<div class="flex flex-col h-screen bg-transparent w-full max-w-4xl mx-auto">
+  @switch (engineState()) {
+    @case ('initial') {
+      <div class="flex flex-col items-center justify-center h-full text-center p-4">
+        <h1 class="text-4xl font-bold mb-4 text-gray-800">Gemma 2B Web-LLM</h1>
+        <p class="text-gray-500 mb-8 max-w-md">Запустите нейросеть Google Gemma локально в вашем браузере, используя WebGPU.</p>
+        <button (click)="initModel()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-300 shadow-lg hover:shadow-blue-500/50">
+          Загрузить модель
+        </button>
+      </div>
+    }
+    @case ('loading') {
+      <div class="flex flex-col items-center justify-center h-full p-4">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-700">Загрузка модели...</h2>
+        <div class="w-full max-w-md bg-gray-200 rounded-full h-4 mb-2 overflow-hidden">
+          <div 
+            class="bg-blue-600 h-4 rounded-full transition-all duration-300" 
+            [style.width.%]="(initProgressReport()?.progress ?? 0) * 100">
+          </div>
+        </div>
+        @if(initProgressReport(); as report) {
+           <p class="text-sm text-gray-500 mt-2">{{ report.text }}</p>
+        }
+      </div>
+    }
+    @case ('error') {
+       <div class="flex flex-col items-center justify-center h-full text-center p-4">
+        <h1 class="text-3xl font-bold mb-4 text-red-500">Ошибка инициализации</h1>
+        <p class="text-gray-600 mb-8 max-w-md">{{ error() }}</p>
+        <button (click)="initModel()" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-300">
+          Попробовать снова
+        </button>
+      </div>
+    }
+    @case ('ready') {
+      <!-- Header -->
+      <header class="flex items-center justify-center p-6 sticky top-0 z-10">
+        <div class="flex items-center gap-1 cursor-pointer">
+          <span class="font-semibold text-gray-700 text-lg">Gemma 2B Local Chat</span>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <main #chatContainer class="flex-1 flex flex-col overflow-y-auto p-4 md:p-6">
+          <div class="space-y-8">
+            @for (message of messages(); track $index) {
+              <div class="flex animate-fadeInUp" [class.justify-end]="message.role === 'user'">
+                @if (message.role === 'assistant') {
+                  <div class="flex items-start gap-3 max-w-xl lg:max-w-2xl">
+                     <div class="bg-white/60 backdrop-blur-xl border border-white/30 shadow-md p-4 rounded-3xl rounded-bl-lg text-gray-800 leading-relaxed">
+                      @if (message.content) {
+                        <div [innerHTML]="parseMarkdown(message.content)"></div>
+                      } @else {
+                        <div class="flex items-center justify-center p-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-blue-500 animate-pulse" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="animation-duration: 1.5s;">
+                              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                              <path d="M10.333 5.083c.892 -1.232 2.441 -1.232 3.333 0" />
+                              <path d="M18.917 10.333c1.232 .892 1.232 2.441 0 3.333" />
+                              <path d="M13.667 18.917c-.892 1.232 -2.441 1.232 -3.333 0" />
+                              <path d="M5.083 13.667c-1.232 -.892 -1.232 -2.441 0 -3.333" />
+                              <path d="M10.583 10.583l-1.166 -1.166" />
+                              <path d="M13.417 10.583l1.166 -1.166" />
+                              <path d="M13.417 13.417l1.166 1.166" />
+                              <path d="M10.583 13.417l-1.166 1.166" />
+                              <path d="M12 7v-2" />
+                              <path d="M17 12h2" />
+                              <path d="M12 17v2" />
+                              <path d="M7 12h-2" />
+                            </svg>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+                @if (message.role === 'user') {
+                  <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 rounded-3xl rounded-br-lg max-w-lg lg:max-w-xl shadow-lg">
+                    <p class="whitespace-pre-wrap">{{ message.content }}</p>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+      </main>
+
+      <!-- Input Form -->
+      <footer class="p-4 sticky bottom-0">
+        <div class="flex items-start gap-2 p-2 rounded-full bg-white/40 backdrop-blur-2xl border border-white/30 shadow-lg">
+           <button class="w-10 h-10 flex-shrink-0 rounded-full text-gray-500 hover:text-blue-500 hover:bg-black/5 flex items-center justify-center transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.25" stroke="currentColor" class="w-6 h-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+          </button>
+          
+          <div class="relative w-full flex-1">
+            <!-- Textarea Layer -->
+            <textarea 
+              #promptInput
+              [(ngModel)]="currentPrompt"
+              (input)="onInput()"
+              (keydown)="onKeydown($event)"
+              [disabled]="isLoading()"
+              placeholder="Спросите что-нибудь..." 
+              rows="1" 
+              class="relative z-10 w-full py-2.5 px-2 bg-transparent focus:ring-0 focus:outline-none resize-none placeholder-gray-500 text-gray-900 leading-tight"
+            ></textarea>
+          </div>
+
+          <button 
+            (click)="handleSendMessage()" 
+            [disabled]="isLoading() || !currentPrompt().trim()"
+            class="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center focus:outline-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 self-end"
+            [class.bg-gradient-to-br]="currentPrompt().trim()"
+            [class.from-blue-500]="currentPrompt().trim()"
+            [class.to-blue-600]="currentPrompt().trim()"
+            [class.hover:shadow-lg]="currentPrompt().trim()"
+            [class.hover:shadow-blue-500/50]="currentPrompt().trim()"
+            [class.text-white]="currentPrompt().trim()"
+            [class.bg-black/5]="!currentPrompt().trim()"
+            [class.text-gray-500]="!currentPrompt().trim()"
+            >
+            <!-- Send Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+              <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
+            </svg>
+          </button>
+        </div>
+      </footer>
+    }
+  }
+</div>
