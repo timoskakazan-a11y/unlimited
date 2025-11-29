@@ -32,6 +32,18 @@
     .animate-fadeInUp {
       animation: fadeInUp 0.4s ease-out forwards;
     }
+
+    @keyframes suggestion-in {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+    .animate-suggestion-in {
+      animation: suggestion-in 0.5s ease-out forwards;
+    }
     
     .loading-dot {
       animation: pulse 1.4s infinite;
@@ -52,6 +64,106 @@
         opacity: 1;
       }
     }
+
+    /* Role Change Animation */
+    @keyframes role-glow {
+      0% {
+        box-shadow: 0 0 0px 0px rgba(59, 130, 246, 0);
+      }
+      50% {
+        box-shadow: 0 0 15px 4px rgba(59, 130, 246, 0.5);
+      }
+      100% {
+        box-shadow: 0 0 0px 0px rgba(59, 130, 246, 0);
+      }
+    }
+
+    .role-change-animation > div {
+      animation: role-glow 1.5s ease-out;
+    }
+
+    /* AI Response Formatting Styles */
+    .ai-response-content h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-top: 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+    .ai-response-content h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .ai-response-content ul {
+      list-style: none;
+      padding-left: 1.5rem;
+      margin-top: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .ai-response-content ul li {
+      position: relative;
+      margin-bottom: 0.25rem;
+    }
+    .ai-response-content ul li::before {
+      content: '•';
+      position: absolute;
+      left: -1.25rem;
+      top: 0;
+      color: #3b82f6; /* blue-500 */
+      font-size: 1.25rem;
+      line-height: 1.6rem;
+    }
+    .ai-response-content p {
+      margin-bottom: 0.5rem;
+    }
+    .ai-response-content p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Link Preview Card Styles */
+    .link-preview-card {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background-color: #f8fafc; /* slate-50 */
+      border: 1px solid #e2e8f0; /* slate-200 */
+      border-radius: 0.75rem;
+      padding: 0.75rem;
+      margin-top: 0.75rem;
+      text-decoration: none;
+      color: inherit;
+      transition: background-color 0.2s ease-in-out;
+    }
+    .link-preview-card:hover {
+      background-color: #f1f5f9; /* slate-100 */
+    }
+    .link-preview-favicon {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 0.5rem;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .link-preview-info {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .link-preview-title {
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #1e293b; /* slate-800 */
+    }
+    .link-preview-url {
+      font-size: 0.875rem;
+      color: #64748b; /* slate-500 */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   </style>
 <script type="importmap">
 {
@@ -69,7 +181,8 @@
     "@angular/common": "https://next.esm.sh/@angular/common@^21.0.1?external=rxjs",
     "@angular/common/http": "https://next.esm.sh/@angular/common@^21.0.1/http?external=rxjs",
     "@angular/forms": "https://next.esm.sh/@angular/forms@^21.0.1?external=rxjs",
-    "@mlc-ai/web-llm": "https://esm.run/@mlc-ai/web-llm"
+    "@mlc-ai/web-llm": "https://esm.run/@mlc-ai/web-llm",
+    "@angular/core/rxjs-interop": "https://next.esm.sh/@angular/core@^21.0.1/rxjs-interop?external=rxjs"
   }
 }
 </script>

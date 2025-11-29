@@ -1,5 +1,5 @@
 {
-  "name": "Минималистичный AI Чат",
-  "description": "Экономичный чат-клиент с искусственным интеллектом, созданный с использованием Gemini API. Отличается минималистичным дизайном в стиле Apple, плавной анимацией и потоковой передачей ответов для минимизации затрат.",
+  "name": "Unlimited AI",
+  "description": "A web-based AI chat client that runs language models like Llama 3, Mistral, and Gemma locally in your browser using WebGPU. Features model selection and a premium, minimalist design.",
   "requestFramePermissions": []
 }

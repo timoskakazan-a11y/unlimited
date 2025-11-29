@@ -1,30 +1,23 @@
 import { Injectable } from '@angular/core';
-// Fix: Replaced non-existent `ChatCompletionStream` with `ChatCompletionChunk` which is the correct type for stream parts.
-import { MLCEngine, ChatCompletionChunk, InitProgressReport } from "@mlc-ai/web-llm";
+import { MLCEngine, ChatCompletionChunk, InitProgressReport, ChatCompletion } from "@mlc-ai/web-llm";
 import { ChatMessage } from '../models/chat-message.model';
-
-const SELECTED_MODEL = "Llama-3-8B-Instruct-q4f16_1-MLC";
 
 @Injectable({ providedIn: 'root' })
 export class WebLlmService {
   private engine: MLCEngine | undefined;
 
   async checkSupport(): Promise<boolean> {
-    // Use the standard browser API to check for WebGPU support, as the library's internal method is unstable.
-    // Fix: Cast navigator to 'any' to access the 'gpu' property, which is not in the default TS DOM typings.
     return !!(navigator as any).gpu;
   }
 
-  async init(progressCallback: (progress: InitProgressReport) => void): Promise<void> {
+  async init(modelId: string, progressCallback: (progress: InitProgressReport) => void): Promise<void> {
     if (!this.engine) {
         this.engine = new MLCEngine();
     }
-    // Fix: The `reload` method signature changed. Progress callback is now set with `setInitProgressCallback` before reloading.
     this.engine.setInitProgressCallback(progressCallback);
-    await this.engine.reload(SELECTED_MODEL);
+    await this.engine.reload(modelId);
   }
   
-  // Fix: Updated the return type to `Promise<AsyncIterable<ChatCompletionChunk>>` which is what the streaming API returns.
   async getChatCompletionStream(messages: ChatMessage[]): Promise<AsyncIterable<ChatCompletionChunk>> {
     if (!this.engine) {
       throw new Error("Engine not initialized.");
@@ -33,5 +26,67 @@ export class WebLlmService {
       stream: true,
       messages,
     });
+  }
+
+  async getFollowUpSuggestions(messages: ChatMessage[]): Promise<string[]> {
+    if (!this.engine) {
+      console.error("Suggestion engine not initialized.");
+      return [];
+    }
+    
+    try {
+      const suggestionPrompt: ChatMessage = {
+        role: 'user',
+        content: `На основе нашего диалога, предложи 3 кратких и интересных вопроса для продолжения темы, которые мог бы задать пользователь. Верни ТОЛЬКО вопросы. Каждый вопрос на новой строке. Не используй нумерацию, маркеры или другое форматирование.`
+      };
+
+      const completion: ChatCompletion = await this.engine.chat.completions.create({
+        messages: [...messages, suggestionPrompt],
+        n: 1,
+        temperature: 0.8,
+        top_p: 0.9,
+      });
+
+      const suggestionsText = completion.choices[0]?.message?.content;
+
+      if (suggestionsText) {
+        return suggestionsText
+          .split('\n')
+          .map(s => s.trim().replace(/^- /,'')) // Also remove leading dashes
+          .filter(s => s.length > 0 && s.endsWith('?')) // Basic validation
+          .slice(0, 3);
+      }
+
+      return [];
+    } catch (error) {
+      console.error('Error generating follow-up suggestions:', error);
+      return []; // Return empty array on failure
+    }
+  }
+
+  async getPromptCompletion(partialPrompt: string): Promise<string> {
+    if (!this.engine) {
+      return '';
+    }
+
+    try {
+      const completion: ChatCompletion = await this.engine.chat.completions.create({
+        messages: [
+          { role: 'system', content: `Твоя задача — дополнить фразу пользователя. Предложи короткое и логичное продолжение из 2-5 слов. Не пиши законченное предложение. Не добавляй знаки препинания в конце, если их не было в исходном тексте. Отвечай только самим дополнением, без лишних слов.` },
+          { role: 'user', content: partialPrompt }
+        ],
+        n: 1,
+        temperature: 0.5,
+        max_tokens: 15, // A little more room for 5 words
+        stop: ['\n', '.', '?', '!', ','] // Stop at natural sentence endings or breaks
+      });
+
+      const completionText = completion.choices[0]?.message?.content?.trim() ?? '';
+      return completionText;
+
+    } catch (error) {
+      console.error('Error getting prompt completion:', error);
+      return '';
+    }
   }
 }
